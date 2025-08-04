@@ -1428,3 +1428,6 @@
 2025-08-04 04:58:52.631675 -    Signal: BUY | Current Price: 2652.11802
 2025-08-04 04:58:52.631927 - ⚡ HFT BUY Signal: XAUUSDm @ 2652.11802
 2025-08-04 04:58:52.732690 - ❌ Order failed - Error code: 10019
+2025-08-04 08:25:18.971501 - 👋 Enhanced Trading Bot session ended
+2025-08-04 08:25:22.216995 - 👋 Enhanced Windows MT5 Trading Bot session ended
+2025-08-04 08:25:22.217474 - 💾 All logs saved to files
