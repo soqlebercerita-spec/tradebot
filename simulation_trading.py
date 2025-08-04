@@ -318,3 +318,12 @@ class SimulationTrading:
     def last_error(self):
         """Get last error (simulation always returns success)"""
         return (0, "Success")
+    
+    def get_account_info(self):
+        """Get account information (alias for account_info)"""
+        return self.account_info()
+    
+    @property
+    def balance(self):
+        """Get account balance"""
+        return self.account.balance if self.account else 10000.0

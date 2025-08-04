@@ -1265,8 +1265,8 @@ class TradingBotWindows:
             try:
                 lot = float(self.lot_var.get())
                 interval = int(self.interval_var.get())
-                tp_pct = float(self.tp_var.get())
-                sl_pct = float(self.sl_var.get())
+                tp_pct = float(self.tp_balance_var.get())
+                sl_pct = float(self.sl_balance_var.get())
                 
                 if lot <= 0 or lot > 10:
                     raise ValueError("Lot size must be between 0.01 and 10")
