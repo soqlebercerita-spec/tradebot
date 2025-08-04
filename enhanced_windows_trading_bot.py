@@ -90,6 +90,14 @@ class UltimateWindowsTradingBot:
         self.successful_trades = 0
         self.failed_trades = 0
         
+        # HFT Anti-Loss Protection System
+        self.hft_consecutive_losses = 0
+        self.hft_cooldown_until = None
+        self.last_trade_result = None
+        self.trade_history = []
+        self.daily_loss_amount = 0
+        self.session_profit = 0
+        
         # Threading
         self.bot_thread = None
         
@@ -1178,6 +1186,12 @@ class UltimateWindowsTradingBot:
                 # Generate trading signal with all features
                 signal = self.generate_enhanced_signal(symbol, current_price)
                 
+                # Apply HFT Anti-Loss Protection
+                if self.current_mode == self.HFT_MODE:
+                    if not self.check_hft_safety():
+                        self.log("🛡️ HFT Anti-Loss Protection: Trading paused", "warning")
+                        signal = {'action': 'HOLD', 'confidence': 0}
+                
                 if signal and signal['action'] != 'HOLD':
                     self.execute_trade(signal, tp_pct, sl_pct)
                     self.total_opportunities_captured += 1
@@ -1317,6 +1331,57 @@ class UltimateWindowsTradingBot:
         
         return signal
     
+    def check_hft_safety(self):
+        """Check HFT Anti-Loss Protection rules"""
+        now = datetime.datetime.now()
+        
+        # Check if in cooldown period
+        if self.hft_cooldown_until and now < self.hft_cooldown_until:
+            return False
+        
+        # Check consecutive losses limit
+        if self.hft_consecutive_losses >= config.HFT_MAX_CONSECUTIVE_LOSSES:
+            # Start cooldown period
+            self.hft_cooldown_until = now + datetime.timedelta(minutes=config.HFT_COOLDOWN_MINUTES)
+            self.log(f"🛡️ HFT: {config.HFT_MAX_CONSECUTIVE_LOSSES} consecutive losses - {config.HFT_COOLDOWN_MINUTES}min cooldown", "warning")
+            return False
+        
+        # Check daily loss limit (5% of starting balance)
+        if self.modal_awal and self.daily_loss_amount > (self.modal_awal * 0.05):
+            self.log("🛡️ HFT: Daily loss limit reached (5%)", "warning")
+            return False
+        
+        # Check session profit/loss ratio
+        if self.session_profit < -1000:  # If session loss > $1000
+            self.log("🛡️ HFT: Session loss limit reached", "warning")
+            return False
+        
+        return True
+    
+    def record_trade_result(self, profit_loss):
+        """Record trade result for HFT protection"""
+        self.trade_history.append({
+            'timestamp': datetime.datetime.now(),
+            'profit_loss': profit_loss,
+            'mode': self.current_mode
+        })
+        
+        # Update session profit
+        self.session_profit += profit_loss
+        self.daily_loss_amount += max(0, -profit_loss)  # Only count losses
+        
+        # Update consecutive losses counter
+        if profit_loss < 0:
+            self.hft_consecutive_losses += 1
+            self.last_trade_result = 'LOSS'
+        else:
+            self.hft_consecutive_losses = 0  # Reset on profit
+            self.last_trade_result = 'PROFIT'  
+        
+        # Keep only last 100 trades
+        if len(self.trade_history) > 100:
+            self.trade_history = self.trade_history[-100:]
+    
     def execute_trade(self, signal, tp_pct, sl_pct):
         """Execute trade with balance-based TP/SL"""
         try:
@@ -1388,7 +1453,16 @@ class UltimateWindowsTradingBot:
                 self.order_counter += 1
                 self.successful_trades += 1
                 
-                self.log(f"✅ {signal['action']} order executed - Ticket: {result.order}", "success")
+                # Initialize starting balance if not set
+                if not self.modal_awal:
+                    self.modal_awal = balance
+                
+                # Log successful trade with HFT protection info
+                protection_status = ""
+                if self.current_mode == self.HFT_MODE:
+                    protection_status = f" | Consecutive Losses: {self.hft_consecutive_losses}"
+                
+                self.log(f"✅ {signal['action']} order executed - Ticket: {result.order}{protection_status}", "success")
                 self.log(f"💰 TP: ${tp_amount:,.2f} | SL: ${sl_amount:,.2f} (Balance %)", "info")
                 
                 # Log trade details

@@ -225,15 +225,18 @@ class EnhancedIndicators:
                 elif wma_fast < wma_slow:
                     sell_score += 1
             
-            # RSI signals (weight: 2) - More aggressive thresholds
-            if rsi <= config.RSI_OVERSOLD:
-                buy_score += 3  # Increased weight for strong signals
-            elif rsi >= config.RSI_OVERBOUGHT:
-                sell_score += 3
-            elif rsi < 45:  # More sensitive
+            # RSI signals - IMPROVED Quality Control for HFT
+            if rsi <= 25:  # Very oversold - strong buy signal
+                buy_score += 4
+            elif rsi >= 75:  # Very overbought - strong sell signal
+                sell_score += 4
+            elif rsi <= 35:  # Oversold - moderate buy
                 buy_score += 2
-            elif rsi > 55:  # More sensitive
+            elif rsi >= 65:  # Overbought - moderate sell
                 sell_score += 2
+            elif 45 <= rsi <= 55:  # Neutral zone - avoid trading
+                buy_score -= 1
+                sell_score -= 1
             
             # Bollinger Band signals (weight: 2)
             if bb_lower and bb_upper:
@@ -257,19 +260,24 @@ class EnhancedIndicators:
             signal = 'WAIT'
             confidence = 0
             
-            # Enhanced signal logic for better opportunity capture
-            if buy_score >= 3 and buy_confidence > sell_confidence:
+            # ENHANCED signal logic - Higher Quality Control
+            minimum_score = config.SKOR_MINIMAL
+            confidence_threshold = config.SIGNAL_CONFIDENCE_THRESHOLD
+            
+            # Primary signal logic - strict quality control
+            if buy_score >= minimum_score and buy_confidence >= confidence_threshold and buy_confidence > sell_confidence * 1.2:
                 signal = 'BUY'
                 confidence = buy_confidence
-            elif sell_score >= 3 and sell_confidence > buy_confidence:
+            elif sell_score >= minimum_score and sell_confidence >= confidence_threshold and sell_confidence > buy_confidence * 1.2: 
                 signal = 'SELL'
                 confidence = sell_confidence
-            elif buy_confidence > config.SIGNAL_CONFIDENCE_THRESHOLD and buy_confidence > sell_confidence:
+            # Secondary logic - require significant difference between buy/sell signals
+            elif buy_score >= minimum_score and buy_confidence > sell_confidence * 1.5:
                 signal = 'BUY'
-                confidence = buy_confidence
-            elif sell_confidence > config.SIGNAL_CONFIDENCE_THRESHOLD and sell_confidence > buy_confidence:
+                confidence = buy_confidence * 0.8  # Reduce confidence for secondary signals
+            elif sell_score >= minimum_score and sell_confidence > buy_confidence * 1.5:
                 signal = 'SELL'
-                confidence = sell_confidence
+                confidence = sell_confidence * 0.8  # Reduce confidence for secondary signals
             
             return {
                 'signal': signal,

@@ -6,6 +6,7 @@ This is a sophisticated automated trading bot system designed for MetaTrader5 in
 
 Preferred communication style: Simple, everyday language.
 Platform: Windows with MetaTrader5 for real money trading (not simulation).
+Issue: HFT mode experiencing consecutive losses - needs better risk management and winrate improvement.
 
 # System Architecture
 

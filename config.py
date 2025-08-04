@@ -20,9 +20,9 @@ class TradingConfig:
         self.SCALPING_TP_PERSEN_BALANCE = 0.005  # 0.5% dari modal untuk scalping TP
         self.SCALPING_SL_PERSEN_BALANCE = 0.02   # 2% dari modal untuk scalping SL
         
-        # HFT Trading Mode
-        self.HFT_TP_PERSEN_BALANCE = 0.003   # 0.3% dari modal untuk HFT TP (sangat ketat)
-        self.HFT_SL_PERSEN_BALANCE = 0.015   # 1.5% dari modal untuk HFT SL (tighter control)
+        # HFT Trading Mode - IMPROVED RISK/REWARD
+        self.HFT_TP_PERSEN_BALANCE = 0.005   # 0.5% dari modal untuk HFT TP (lebih realistis)
+        self.HFT_SL_PERSEN_BALANCE = 0.010   # 1.0% dari modal untuk HFT SL (better ratio)
         
         # Trading Mode Settings
         self.SCALPING_OVERRIDE_ENABLED = True
@@ -34,15 +34,15 @@ class TradingConfig:
         self.SCALPING_TP_PERSEN = self.SCALPING_TP_PERSEN_BALANCE
         self.SCALPING_SL_PERSEN = self.SCALPING_SL_PERSEN_BALANCE
         
-        # Enhanced Risk Management - HFT Scalping Support
-        self.MAX_ORDER_PER_SESSION = 50     # Significantly increased for HFT scalping
-        self.MAX_ORDER_PER_SESSION_HFT = 100  # Special limit for HFT mode
-        self.SALDO_MINIMAL = 100  # Reduced minimum balance for more accessibility
-        self.TARGET_PROFIT_PERSEN = 12  # Increased to 12% for better performance
-        self.LONJAKAN_THRESHOLD = 2     # Further reduced to 2% for more opportunities
-        self.SKOR_MINIMAL = 2           # Reduced to 2 for higher winrate
-        self.MAX_RISK_PER_TRADE = 1.0   # Reduced to 1.0% for safer trading
-        self.MAX_DRAWDOWN = 10.0        # Reduced to 10% for tighter control
+        # Enhanced Risk Management - IMPROVED HFT Protection
+        self.MAX_ORDER_PER_SESSION = 30     # Reduced for better quality control
+        self.MAX_ORDER_PER_SESSION_HFT = 40  # Reduced HFT limit for safer trading
+        self.SALDO_MINIMAL = 100  # Minimum balance requirement
+        self.TARGET_PROFIT_PERSEN = 8   # More realistic daily target (8%)
+        self.LONJAKAN_THRESHOLD = 1.5   # Tighter spike detection (1.5%)
+        self.SKOR_MINIMAL = 3           # Higher score requirement for better signals
+        self.MAX_RISK_PER_TRADE = 0.5   # Much safer per-trade risk (0.5%)
+        self.MAX_DRAWDOWN = 5.0         # Stricter drawdown limit (5%)
         
         # Trading Hours - 24/7 UNLIMITED
         self.TRADING_START_HOUR = 0     # 24/7 operation
@@ -78,17 +78,22 @@ class TradingConfig:
         self.DATA_BUFFER_SIZE = 100     # Larger data buffer
         self.MIN_DATA_POINTS = 30       # Reduced minimum data requirement
         
-        # Signal Enhancement Settings - Higher Winrate
-        self.SIGNAL_CONFIDENCE_THRESHOLD = 0.25  # Even lower for more signals
-        self.SIGNAL_CONFIDENCE_THRESHOLD_HFT = 0.15  # Ultra-low for HFT mode
-        self.TREND_STRENGTH_MIN = 0.15          # Lower minimum trend strength
-        self.VOLUME_THRESHOLD = 0.25            # Lower volume threshold
+        # Signal Enhancement Settings - HIGHER QUALITY SIGNALS
+        self.SIGNAL_CONFIDENCE_THRESHOLD = 0.45  # Higher for better quality
+        self.SIGNAL_CONFIDENCE_THRESHOLD_HFT = 0.35  # Still selective for HFT
+        self.TREND_STRENGTH_MIN = 0.30          # Stronger trend requirement
+        self.VOLUME_THRESHOLD = 0.40            # Higher volume confirmation
         
-        # Winrate Enhancement Settings
+        # Winrate Enhancement Settings - STRICT QUALITY CONTROL
         self.WINRATE_BOOST_ENABLED = True      # Enable winrate boost features
-        self.MULTI_CONFIRMATION_REQUIRED = 2   # Require 2+ indicators agreement
-        self.TREND_CONFIRMATION_PERIOD = 5     # Look back 5 periods for trend
-        self.SIGNAL_STRENGTH_MULTIPLIER = 1.5  # Boost strong signals
+        self.MULTI_CONFIRMATION_REQUIRED = 3   # Require 3+ indicators agreement
+        self.TREND_CONFIRMATION_PERIOD = 8     # Look back 8 periods for stronger trend
+        self.SIGNAL_STRENGTH_MULTIPLIER = 2.0  # Higher boost for strong signals
+        
+        # HFT Anti-Loss Protection
+        self.HFT_MAX_CONSECUTIVE_LOSSES = 3    # Stop HFT after 3 consecutive losses
+        self.HFT_COOLDOWN_MINUTES = 10         # 10 minute cooldown after losses
+        self.HFT_MIN_PROFIT_RATIO = 1.5        # Minimum 1.5:1 risk/reward ratio
         
         # File Paths
         self.LOG_FILE = "trading_log.txt"
