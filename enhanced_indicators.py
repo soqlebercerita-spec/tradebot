@@ -305,3 +305,41 @@ class EnhancedIndicators:
                 'strength': 0,
                 'indicators': {}
             }
+    
+    def get_signal(self, market_data, symbol):
+        """Compatible get_signal method for the bot"""
+        try:
+            if not market_data or len(market_data) == 0:
+                return {
+                    'action': 'HOLD',
+                    'confidence': 0,
+                    'strength': 0,
+                    'indicators': {}
+                }
+            
+            # Use the enhanced signal analysis
+            result = self.enhanced_signal_analysis(market_data, symbol)
+            
+            # Convert signal format to match expected format
+            action = 'HOLD'
+            if result['signal'] == 'BUY':
+                action = 'BUY'
+            elif result['signal'] == 'SELL':
+                action = 'SELL'
+            
+            return {
+                'action': action,
+                'confidence': result['confidence'],
+                'strength': result.get('strength', 0),
+                'indicators': result.get('indicators', {}),
+                'scores': result.get('scores', {})
+            }
+            
+        except Exception as e:
+            print(f"Get signal error: {e}")
+            return {
+                'action': 'HOLD',
+                'confidence': 0,
+                'strength': 0,
+                'indicators': {}
+            }

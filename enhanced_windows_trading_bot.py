@@ -131,13 +131,13 @@ class UltimateWindowsTradingBot:
         # Trading mode variables
         self.trading_mode_var = tk.StringVar(value=self.NORMAL_MODE)
         
-        # Balance-based TP/SL variables for each mode
-        self.normal_tp_var = tk.StringVar(value=str(config.TP_PERSEN_BALANCE * 100))
-        self.normal_sl_var = tk.StringVar(value=str(config.SL_PERSEN_BALANCE * 100))
-        self.scalping_tp_var = tk.StringVar(value=str(config.SCALPING_TP_PERSEN_BALANCE * 100))
-        self.scalping_sl_var = tk.StringVar(value=str(config.SCALPING_SL_PERSEN_BALANCE * 100))
-        self.hft_tp_var = tk.StringVar(value=str(config.HFT_TP_PERSEN_BALANCE * 100))
-        self.hft_sl_var = tk.StringVar(value=str(config.HFT_SL_PERSEN_BALANCE * 100))
+        # Balance-based TP/SL variables for each mode (fixed float conversion)
+        self.normal_tp_var = tk.StringVar(value=f"{config.TP_PERSEN_BALANCE * 100:.1f}")
+        self.normal_sl_var = tk.StringVar(value=f"{config.SL_PERSEN_BALANCE * 100:.1f}")
+        self.scalping_tp_var = tk.StringVar(value=f"{config.SCALPING_TP_PERSEN_BALANCE * 100:.1f}")
+        self.scalping_sl_var = tk.StringVar(value=f"{config.SCALPING_SL_PERSEN_BALANCE * 100:.1f}")
+        self.hft_tp_var = tk.StringVar(value=f"{config.HFT_TP_PERSEN_BALANCE * 100:.1f}")
+        self.hft_sl_var = tk.StringVar(value=f"{config.HFT_SL_PERSEN_BALANCE * 100:.1f}")
         
         # Status variables
         self.account_info_var = tk.StringVar(value="Account: Not Connected")
@@ -716,12 +716,23 @@ class UltimateWindowsTradingBot:
     
     def get_mode_tpsl(self):
         """Get TP/SL percentages based on current mode"""
-        if self.current_mode == self.HFT_MODE:
-            return float(self.hft_tp_var.get()), float(self.hft_sl_var.get())
-        elif self.current_mode == self.SCALPING_MODE:
-            return float(self.scalping_tp_var.get()), float(self.scalping_sl_var.get())
-        else:
-            return float(self.normal_tp_var.get()), float(self.normal_sl_var.get())
+        try:
+            if self.current_mode == self.HFT_MODE:
+                tp = self.hft_tp_var.get().replace(',', '.').strip()
+                sl = self.hft_sl_var.get().replace(',', '.').strip()
+                return float(tp), float(sl)
+            elif self.current_mode == self.SCALPING_MODE:
+                tp = self.scalping_tp_var.get().replace(',', '.').strip()
+                sl = self.scalping_sl_var.get().replace(',', '.').strip()
+                return float(tp), float(sl)
+            else:
+                tp = self.normal_tp_var.get().replace(',', '.').strip()
+                sl = self.normal_sl_var.get().replace(',', '.').strip()
+                return float(tp), float(sl)
+        except ValueError as e:
+            self.log(f"❌ TP/SL conversion error: {e}", "error")
+            # Return default values
+            return 1.0, 3.0
     
     def get_current_price(self, symbol):
         """Get current price from MT5"""
@@ -742,25 +753,46 @@ class UltimateWindowsTradingBot:
     def generate_enhanced_signal(self, symbol, current_price):
         """Generate enhanced trading signal with all features"""
         try:
-            # Basic technical analysis
-            signal = self.indicators.get_signal(symbol, current_price)
+            # Generate price history for technical analysis
+            if symbol not in self.price_cache:
+                self.price_cache[symbol] = []
+            
+            # Add current price to cache
+            self.price_cache[symbol].append(current_price)
+            
+            # Keep only last 100 prices
+            if len(self.price_cache[symbol]) > 100:
+                self.price_cache[symbol] = self.price_cache[symbol][-100:]
+            
+            # Need at least 20 prices for analysis
+            if len(self.price_cache[symbol]) < 20:
+                return {'action': 'HOLD', 'confidence': 0}
+            
+            # Use enhanced signal analysis
+            signal = self.indicators.get_signal(self.price_cache[symbol], symbol)
             
             if not signal:
-                return None
+                return {'action': 'HOLD', 'confidence': 0}
             
             # Enhance signal with ML if available
             if self.ml_engine:
-                ml_signal = self.ml_engine.predict_signal(symbol, current_price)
-                if ml_signal:
-                    signal['confidence'] *= ml_signal.get('confidence', 1.0)
-                    signal['ml_prediction'] = ml_signal.get('prediction', 'NEUTRAL')
+                try:
+                    ml_signal = self.ml_engine.predict_signal(symbol, current_price)
+                    if ml_signal:
+                        signal['confidence'] *= ml_signal.get('confidence', 1.0)
+                        signal['ml_prediction'] = ml_signal.get('prediction', 'NEUTRAL')
+                except:
+                    pass  # ML engine might not have all methods
             
             # Enhance with adaptive indicators if available
             if self.adaptive_indicators:
-                adaptive_signal = self.adaptive_indicators.get_adaptive_signal(symbol, current_price)
-                if adaptive_signal:
-                    signal['confidence'] *= adaptive_signal.get('confidence', 1.0)
-                    signal['adaptive_score'] = adaptive_signal.get('score', 0)
+                try:
+                    adaptive_signal = self.adaptive_indicators.get_adaptive_signal(symbol, current_price)
+                    if adaptive_signal:
+                        signal['confidence'] *= adaptive_signal.get('confidence', 1.0)
+                        signal['adaptive_score'] = adaptive_signal.get('score', 0)
+                except:
+                    pass  # Adaptive indicators might not have all methods
             
             # Apply mode-specific filters
             signal = self.apply_mode_filters(signal)
@@ -769,7 +801,7 @@ class UltimateWindowsTradingBot:
             
         except Exception as e:
             self.log(f"❌ Signal generation error: {e}", "error")
-            return None
+            return {'action': 'HOLD', 'confidence': 0}
     
     def apply_mode_filters(self, signal):
         """Apply mode-specific signal filters"""
