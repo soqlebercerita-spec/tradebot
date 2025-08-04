@@ -1586,7 +1586,20 @@ class IntelligentSignalProcessor:
             confidence = 0
         
         return {'score': score, 'confidence': confidence}
-    
+
+def main():
+    """Main function to run the Advanced Trading Engine"""
+    try:
+        print("🚀 Starting Advanced Trading Engine...")
+        engine = AdvancedTradingEngine()
+        print("✅ Engine initialized, starting GUI...")
+        engine.root.mainloop()
+    except Exception as e:
+        print(f"❌ Fatal error: {e}")
+        import traceback
+        traceback.print_exc()
+        input("Press Enter to exit...")
+
     def regime_to_score(self, regime):
         """Convert regime to numerical score"""
         regime_scores = {
@@ -1669,6 +1682,4 @@ class SmartPortfolioManager:
         return avg_win / avg_loss if avg_loss > 0 else 1.5
 
 if __name__ == "__main__":
-    # Create and run advanced trading engine
-    engine = AdvancedTradingEngine()
-    engine.run()
+    main()
