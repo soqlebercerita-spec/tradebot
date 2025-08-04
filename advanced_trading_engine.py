@@ -20,6 +20,7 @@ import csv
 import os
 import json
 import sys
+import random
 from scipy import stats
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import StandardScaler
@@ -36,6 +37,7 @@ except ImportError:
 
 from hft_risk_manager import HFTRiskManager
 from advanced_market_data import market_data_provider
+from advanced_notifications import notification_manager
 
 # MetaTrader5 integration with fallback
 try:
@@ -56,6 +58,7 @@ class AdvancedTradingEngine:
         self.signal_processor = IntelligentSignalProcessor()
         self.portfolio_manager = SmartPortfolioManager()
         self.market_data = market_data_provider
+        self.notification_manager = notification_manager
         
         # Trading modes
         self.CONSERVATIVE_MODE = "CONSERVATIVE"
@@ -77,6 +80,7 @@ class AdvancedTradingEngine:
         self.total_trades = 0
         self.winning_trades = 0
         self.losing_trades = 0
+        self.failed_trades = 0
         self.total_profit = 0
         self.max_drawdown_pct = 0
         self.current_drawdown_pct = 0
@@ -347,6 +351,9 @@ class AdvancedTradingEngine:
         # Start market data feed
         self.market_data.start_data_feed()
         
+        # Test notifications
+        self.notification_manager.test_notifications()
+        
         # Update GUI
         self.start_button.config(state="disabled")
         self.stop_button.config(state="normal")
@@ -521,6 +528,18 @@ class AdvancedTradingEngine:
                 self.log(f"✅ REAL TRADE: {signal['action']} {symbol} "
                         f"Size: {position_size} @ {current_price:.5f} "
                         f"TP: {tp_price:.5f} SL: {sl_price:.5f}", "success")
+                
+                # Send notification
+                self.notification_manager.send_trade_notification({
+                    'symbol': symbol,
+                    'action': signal['action'],
+                    'price': current_price,
+                    'lot_size': position_size,
+                    'confidence': signal['confidence'],
+                    'mode': self.current_mode,
+                    'tp_price': tp_price,
+                    'sl_price': sl_price
+                })
                 
                 # Log trade for analysis
                 self.log_trade_details(signal, current_price, tp_price, sl_price, position_size)
@@ -918,6 +937,26 @@ class AdvancedTradingEngine:
         
         self.log("🛑 Trading engine stopped", "warning")
     
+    def test_notifications(self):
+        """Test notification system"""
+        try:
+            result = self.notification_manager.test_notifications()
+            self.log(f"📱 Notification test: Telegram={result['telegram']}, WhatsApp={result['whatsapp']}", "info")
+        except Exception as e:
+            self.log(f"❌ Notification test failed: {e}", "error")
+    
+    def send_daily_summary(self):
+        """Send daily trading summary"""
+        try:
+            self.notification_manager.send_daily_summary({
+                'total_trades': self.total_trades,
+                'winning_trades': self.winning_trades,
+                'total_profit': self.total_profit
+            })
+            self.log("📊 Daily summary sent", "info")
+        except Exception as e:
+            self.log(f"❌ Failed to send summary: {e}", "error")
+    
     def connect_mt5(self):
         """Connect to MetaTrader5"""
         if not MT5_AVAILABLE:
@@ -936,6 +975,13 @@ class AdvancedTradingEngine:
                     self.account_status_var.set(f"Status: MT5 Connected - Account {account_info.login}")
                     self.balance_var.set(f"Balance: ${account_info.balance:,.2f}")
                     self.log(f"✅ MT5 connected successfully - Balance: ${account_info.balance:,.2f}", "success")
+                    
+                    # Send connection notification
+                    self.notification_manager.send_system_status({
+                        'connection_status': 'Connected',
+                        'balance': account_info.balance,
+                        'running_time': 0
+                    })
                     
                     # Test symbol access
                     test_symbol = self.symbol_var.get()
