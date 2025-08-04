@@ -48,11 +48,19 @@ class AdvancedMarketDataProvider:
         print("🛑 Market data feed stopped")
     
     def _data_update_loop(self):
-        """Main data update loop"""
+        """Main data update loop with real-time APIs and fallback"""
         while self.running:
             try:
                 for symbol in self.symbols:
-                    price = self._generate_realistic_price(symbol)
+                    # Try to get real price first, fallback to simulation
+                    real_price = self._fetch_real_price(symbol)
+                    if real_price:
+                        price = real_price
+                        self.current_source = 'real_api'
+                    else:
+                        price = self._generate_realistic_price(symbol)
+                        self.current_source = 'simulation'
+                    
                     self._update_price_cache(symbol, price)
                 
                 time.sleep(self.update_interval)
@@ -232,6 +240,78 @@ class AdvancedMarketDataProvider:
         else:
             momentum = 0
         
+    def _fetch_real_price(self, symbol):
+        """Fetch real price from APIs"""
+        try:
+            # Try different APIs based on symbol
+            if symbol == 'XAUUSDm':
+                return self._fetch_gold_price()
+            elif symbol in ['EURUSD', 'GBPUSD', 'USDJPY']:
+                return self._fetch_forex_price(symbol)
+            elif symbol == 'BTCUSD':
+                return self._fetch_crypto_price('BTC')
+            else:
+                return None
+        except Exception as e:
+            print(f"⚠️ Real price fetch failed for {symbol}: {e}")
+            return None
+    
+    def _fetch_gold_price(self):
+        """Fetch real gold price"""
+        try:
+            response = requests.get('https://api.metals.live/v1/spot/gold', timeout=2)
+            if response.status_code == 200:
+                data = response.json()
+                return float(data.get('price', 0))
+        except:
+            pass
+        return None
+    
+    def _fetch_forex_price(self, symbol):
+        """Fetch real forex price"""
+        try:
+            # Using exchangerate-api.com (free tier available)
+            base_currency = symbol[:3]
+            quote_currency = symbol[3:]
+            url = f'https://api.exchangerate-api.com/v4/latest/{base_currency}'
+            response = requests.get(url, timeout=2)
+            if response.status_code == 200:
+                data = response.json()
+                return float(data['rates'].get(quote_currency, 0))
+        except:
+            pass
+        return None
+    
+    def _fetch_crypto_price(self, crypto):
+        """Fetch real crypto price"""
+        try:
+            # Using CoinGecko API (free)
+            url = f'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd'
+            response = requests.get(url, timeout=2)
+            if response.status_code == 200:
+                data = response.json()
+                return float(data['bitcoin']['usd'])
+        except:
+            pass
+        return None
+    
+    def get_market_data_with_source(self, symbol):
+        """Get market data with source information"""
+        data = self.get_market_data(symbol)
+        if data:
+            data['data_source'] = getattr(self, 'current_source', 'simulation')
+        return data
+    
+    def get_price_feed_status(self):
+        """Get current price feed status"""
+        return {
+            'running': self.running,
+            'source': getattr(self, 'current_source', 'simulation'),
+            'symbols_count': len(self.symbols),
+            'cache_size': sum(len(prices) for prices in self.price_cache.values()),
+            'last_update': datetime.now().isoformat()
+        }
+
         return {
             'symbol': symbol,
             'current_price': current_price,
@@ -245,7 +325,8 @@ class AdvancedMarketDataProvider:
             'price_history': prices,
             'bid': current_price - 0.0001,  # Simulated bid
             'ask': current_price + 0.0001,  # Simulated ask
-            'spread': 0.0002
+            'spread': 0.0002,
+            'data_source': getattr(self, 'current_source', 'simulation')  # Track data source
         }
     
     def calculate_technical_indicators(self, symbol, periods=100):

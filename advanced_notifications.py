@@ -7,7 +7,12 @@ import os
 import requests
 import json
 from datetime import datetime
-from twilio.rest import Client
+try:
+    from twilio.rest import Client
+    TWILIO_AVAILABLE = True
+except ImportError:
+    TWILIO_AVAILABLE = False
+    print("⚠️ Twilio not available - WhatsApp notifications disabled")
 import threading
 import time
 
@@ -26,14 +31,16 @@ class AdvancedNotificationManager:
         
         # Initialize Twilio client
         try:
-            if self.twilio_sid and self.twilio_token:
+            if TWILIO_AVAILABLE and self.twilio_sid and self.twilio_token:
                 self.twilio_client = Client(self.twilio_sid, self.twilio_token)
                 self.whatsapp_enabled = True
             else:
                 self.whatsapp_enabled = False
+                self.twilio_client = None
         except Exception as e:
             print(f"WhatsApp/Twilio initialization failed: {e}")
             self.whatsapp_enabled = False
+            self.twilio_client = None
         
         # Check Telegram availability
         self.telegram_enabled = bool(self.telegram_token and self.telegram_chat_id)
