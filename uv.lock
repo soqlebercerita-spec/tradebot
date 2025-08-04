@@ -1162,6 +1162,7 @@ dependencies = [
     { name = "psutil" },
     { name = "requests" },
     { name = "scikit-learn" },
+    { name = "scipy" },
     { name = "trafilatura" },
     { name = "twilio" },
 ]
@@ -1174,6 +1175,7 @@ requires-dist = [
     { name = "psutil", specifier = ">=7.0.0" },
     { name = "requests", specifier = ">=2.25.0" },
     { name = "scikit-learn", specifier = ">=1.7.1" },
+    { name = "scipy", specifier = ">=1.16.1" },
     { name = "trafilatura", specifier = ">=2.0.0" },
     { name = "twilio", specifier = ">=9.7.0" },
 ]

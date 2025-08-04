@@ -1586,6 +1586,75 @@ class IntelligentSignalProcessor:
             confidence = 0
         
         return {'score': score, 'confidence': confidence}
+    
+    def generate_volume_signal(self, analysis, technical_indicators):
+        """Generate volume-based signal"""
+        volatility = analysis.get('volatility', 0.01)
+        current_price = analysis.get('current_price', 0)
+        
+        # Use volatility as volume proxy
+        volume_score = 0
+        if volatility > 0.02:  # High volatility indicates volume
+            volume_score = 0.6
+        elif volatility > 0.015:
+            volume_score = 0.4
+        elif volatility < 0.005:
+            volume_score = -0.3  # Low volume
+        
+        confidence = min(volatility * 20, 1.0)
+        return {'score': volume_score, 'confidence': confidence}
+    
+    def generate_volatility_signal(self, analysis, technical_indicators):
+        """Generate volatility-based signal"""
+        volatility = analysis.get('volatility', 0.01)
+        
+        # Volatility breakout signal
+        volatility_score = 0
+        if volatility > 0.025:  # High volatility breakout
+            volatility_score = 0.8
+        elif volatility > 0.02:
+            volatility_score = 0.5
+        elif volatility < 0.005:  # Low volatility compression
+            volatility_score = 0.3  # Expect expansion
+        
+        confidence = min(abs(volatility_score) * 1.2, 1.0)
+        return {'score': volatility_score, 'confidence': confidence}
+    
+    def generate_confluence_signal(self, analysis, technical_indicators):
+        """Generate confluence signal based on multiple indicators"""
+        trend_strength = analysis.get('trend_strength', 0)
+        momentum = analysis.get('momentum', 0)
+        volatility = analysis.get('volatility', 0.01)
+        
+        # Confluence scoring
+        confluence_factors = 0
+        if abs(trend_strength) > 0.5:
+            confluence_factors += 1
+        if abs(momentum) > 0.3:
+            confluence_factors += 1
+        if volatility > 0.015:
+            confluence_factors += 1
+        
+        # RSI confluence
+        rsi = technical_indicators.get('rsi', 50)
+        if rsi < 30 or rsi > 70:
+            confluence_factors += 1
+        
+        confluence_score = confluence_factors / 4.0  # Normalize to 0-1
+        direction = 1 if (trend_strength + momentum) > 0 else -1
+        
+        return {'score': confluence_score * direction, 'confidence': confluence_score}
+    
+    def regime_to_score(self, regime):
+        """Convert regime to numerical score"""
+        regime_scores = {
+            'TRENDING_STABLE': 1.0,
+            'TRENDING_VOLATILE': 0.7,
+            'RANGING_STABLE': 0.3,
+            'RANGING_VOLATILE': 0.1,
+            'UNKNOWN': 0.0
+        }
+        return regime_scores.get(regime, 0.0)
 
 def main():
     """Main function to run the Advanced Trading Engine"""
@@ -1599,26 +1668,6 @@ def main():
         import traceback
         traceback.print_exc()
         input("Press Enter to exit...")
-
-    def regime_to_score(self, regime):
-        """Convert regime to numerical score"""
-        regime_scores = {
-            'TRENDING_STABLE': 1.0,
-            'TRENDING_VOLATILE': 0.7,
-            'RANGING_STABLE': 0.3,
-            'RANGING_VOLATILE': 0.1,
-            'UNKNOWN': 0.0
-        }
-        return regime_scores.get(regime, 0.0)
-    
-    def get_ml_prediction(self, features, ml_model):
-        """Get ML model prediction"""
-        # This would be implemented with actual ML model
-        # For now, return a placeholder
-        return {
-            'signal': 'HOLD',
-            'confidence': 0.5
-        }
 
 class SmartPortfolioManager:
     """Smart portfolio and position size management"""
